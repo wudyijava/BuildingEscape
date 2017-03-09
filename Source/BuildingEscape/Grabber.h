@@ -25,4 +25,8 @@ public:
 
 private:
 	float reach = 100.0f;	//射线延伸比例
+	UInputComponent* inputComponent = nullptr;	//输入组件
+
+	void OnPressed();
+	void OnReleased();
 };

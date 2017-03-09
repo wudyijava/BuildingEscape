@@ -20,9 +20,21 @@ void UGrabber::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// ...
-	
-}
+	inputComponent = 
+		GetOwner()->FindComponentByClass<UInputComponent>();
+	if (inputComponent)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Input component found."));
+		inputComponent->BindAction("Grab", IE_Pressed,
+			this, &UGrabber::OnPressed);
+		inputComponent->BindAction("Grab", IE_Released,
+			this, &UGrabber::OnReleased);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s missing input component."));
+	}
+} 
 
 
 // Called every frame
@@ -48,5 +60,30 @@ void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompone
 		0.0f,
 		10.0f
 	);
+
+	//ÉäÏß¼ì²â
+	FCollisionQueryParams traceParameter = 
+		FCollisionQueryParams(TEXT(""), false, GetOwner());
+	FHitResult hit;
+	GetWorld()->LineTraceSingleByObjectType(hit, playerViewPointLocation,
+		lineTraceEnd, ECollisionChannel::ECC_PhysicsBody, traceParameter);
+
+	//test
+	AActor* hitActor = hit.GetActor();
+	if (hitActor)
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("hit actor's name is %s."), *(hitActor->GetName()));
+	}
+}
+
+void UGrabber::OnPressed()
+{
+	UE_LOG(LogTemp, Warning, TEXT("grab pressed."));
+}
+
+void UGrabber::OnReleased()
+{
+	UE_LOG(LogTemp, Warning, TEXT("grab released."));
 }
 
