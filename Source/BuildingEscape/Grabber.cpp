@@ -10,8 +10,6 @@ UGrabber::UGrabber()
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
-
-	// ...
 }
 
 
@@ -20,11 +18,10 @@ void UGrabber::BeginPlay()
 {
 	Super::BeginPlay();
 
-	inputComponent = 
-		GetOwner()->FindComponentByClass<UInputComponent>();
+	inputComponent = GetOwner()->FindComponentByClass<UInputComponent>();
+	//绑定输入隐射对应事件的回调方法
 	if (inputComponent)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Input component found."));
 		inputComponent->BindAction("Grab", IE_Pressed,
 			this, &UGrabber::OnPressed);
 		inputComponent->BindAction("Grab", IE_Released,
@@ -32,9 +29,15 @@ void UGrabber::BeginPlay()
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("%s missing input component."));
+		UE_LOG(LogTemp, Error, TEXT("%s missing input component."), *GetOwner()->GetName());
 	}
-} 
+
+	physicsHandle = GetOwner()->FindComponentByClass<UPhysicsHandleComponent>();
+	if (physicsHandle == nullptr)
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s missing input component."), *GetOwner()->GetName());
+	}
+}
 
 
 // Called every frame
@@ -42,48 +45,64 @@ void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompone
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	// 获取视点信息
-	FVector playerViewPointLocation;
-	FRotator playerViewPointRotation;
-	GetWorld()->GetFirstPlayerController()->GetPlayerViewPoint(
-		playerViewPointLocation, playerViewPointRotation);
-
-	//绘制射线轨迹
-	FVector lineTraceEnd = playerViewPointLocation + playerViewPointRotation.Vector() * reach;
-	DrawDebugLine(
-		GetWorld(),
-		playerViewPointLocation,
-		lineTraceEnd,
-		FColor::Red,
-		false,
-		0.0f,
-		0.0f,
-		10.0f
-	);
-
-	//射线检测
-	FCollisionQueryParams traceParameter = 
-		FCollisionQueryParams(TEXT(""), false, GetOwner());
-	FHitResult hit;
-	GetWorld()->LineTraceSingleByObjectType(hit, playerViewPointLocation,
-		lineTraceEnd, ECollisionChannel::ECC_PhysicsBody, traceParameter);
-
-	//test
-	AActor* hitActor = hit.GetActor();
-	if (hitActor)
+	if (physicsHandle->GetGrabbedComponent())
 	{
-		UE_LOG(LogTemp, Warning,
-			TEXT("hit actor's name is %s."), *(hitActor->GetName()));
+		//更新被抓取物体的位置
+		physicsHandle->SetTargetLocation(GetReachLineEnd());
 	}
 }
 
 void UGrabber::OnPressed()
 {
-	UE_LOG(LogTemp, Warning, TEXT("grab pressed."));
+	auto hitResult = GetFirstPhysicsBodyInReach();
+	auto hitActor = hitResult.GetActor();
+	if (hitActor)
+	{
+		auto componentToGrab = hitResult.GetComponent();
+		//抓取物体
+		physicsHandle->GrabComponent(componentToGrab, NAME_None,
+			componentToGrab->GetOwner()->GetActorLocation(), true);
+	}
 }
 
 void UGrabber::OnReleased()
 {
-	UE_LOG(LogTemp, Warning, TEXT("grab released."));
+	physicsHandle->ReleaseComponent();
 }
 
+//产生射线对指定距离的物体进行探测，如果探测到指定类型物体则返回结果
+const FHitResult UGrabber::GetFirstPhysicsBodyInReach()
+{
+	//射线检测
+	FCollisionQueryParams traceParameter =
+		FCollisionQueryParams(TEXT(""), false, GetOwner());
+	FHitResult hitResult;
+	GetWorld()->LineTraceSingleByObjectType(
+		hitResult,							//检测结果
+		GetReachLineStart(),				//射线起点
+		GetReachLineEnd(),					//射线终点
+		ECollisionChannel::ECC_PhysicsBody,	//过滤类型
+		traceParameter						//附加追踪参数
+	);
+
+	return hitResult;
+}
+
+FVector UGrabber::GetReachLineStart()
+{
+	// 获取视点信息
+	FVector playerViewPointLocation;
+	FRotator playerViewPointRotation;
+	GetWorld()->GetFirstPlayerController()->GetPlayerViewPoint(
+		playerViewPointLocation, playerViewPointRotation);
+	return playerViewPointLocation;
+}
+
+FVector UGrabber::GetReachLineEnd() {
+	FVector playerViewPointLocation;
+	FRotator playerViewPointRotation;
+	GetWorld()->GetFirstPlayerController()->GetPlayerViewPoint(
+		playerViewPointLocation, playerViewPointRotation);
+	//增加正前方的一个矢量倍数
+	return playerViewPointLocation + playerViewPointRotation.Vector() * reach;
+}
