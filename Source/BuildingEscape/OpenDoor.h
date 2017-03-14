@@ -22,6 +22,8 @@ protected:
 	void OpenDoor();
 	void CloseDoor();
 
+	float GetTotalMassOfActorsInPlate();
+
 public:	
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
@@ -29,12 +31,9 @@ public:
 private:
 	UPROPERTY(VisibleAnywhere)
 	float openAngle = 90;
-	
+
 	UPROPERTY(EditAnywhere)
 	ATriggerVolume* PressurePlate;
-
-	//触发者，Pawn是一种特殊的Actor，可以由人类玩家或AI（人工智能）来进行控制
-	AActor* ActorThatOpens;
 
 	AActor* owner;		//脚本挂载的Actor对象
 

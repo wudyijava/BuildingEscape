@@ -21,7 +21,6 @@ void UOpenDoor::BeginPlay()
 	Super::BeginPlay();
 
 	owner = GetOwner();
-	ActorThatOpens = GetWorld()->GetFirstPlayerController()->GetPawn();
 }
 
 
@@ -30,7 +29,7 @@ void UOpenDoor::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompon
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (PressurePlate->IsOverlappingActor(ActorThatOpens))
+	if (GetTotalMassOfActorsInPlate() > 50.0f)
 	{
 		OpenDoor();
 		LastDoorOpenTime = GetWorld()->GetTimeSeconds();	//开始计时
@@ -53,3 +52,18 @@ void UOpenDoor::CloseDoor()
 	owner->SetActorRotation(FRotator::ZeroRotator);
 }
 
+//获取进入碰撞体的物体质量总和
+float UOpenDoor::GetTotalMassOfActorsInPlate() {
+	float totalMass = 0.0f;
+
+	//获取进入碰撞体的所有物体
+	TArray<AActor*> overlapingActors;
+	PressurePlate->GetOverlappingActors(overlapingActors);
+
+	for (const auto& actor : overlapingActors) {
+		//通过actor的物理组件获得各自的质量
+		totalMass += actor->FindComponentByClass<UPrimitiveComponent>()->GetMass();
+	}
+
+	return totalMass;
+}
