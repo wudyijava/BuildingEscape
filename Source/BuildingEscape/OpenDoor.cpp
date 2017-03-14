@@ -31,25 +31,12 @@ void UOpenDoor::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompon
 
 	if (GetTotalMassOfActorsInPlate() > 50.0f)
 	{
-		OpenDoor();
-		LastDoorOpenTime = GetWorld()->GetTimeSeconds();	//开始计时
+		OnOpenRequest.Broadcast();
 	}
-
-	//如果经过时间达到间隔时间，关门
-	if (GetWorld()->GetTimeSeconds() - DoorCloseDelay > LastDoorOpenTime)
+	else
 	{
-		CloseDoor();
+		OnCloseRequest.Broadcast();
 	}
-}
-
-void UOpenDoor::OpenDoor() {
-	FRotator newRotator = FRotator(0.0f, openAngle, 0.0f);
-	owner->SetActorRotation(newRotator);
-}
-
-void UOpenDoor::CloseDoor()
-{
-	owner->SetActorRotation(FRotator::ZeroRotator);
 }
 
 //获取进入碰撞体的物体质量总和
